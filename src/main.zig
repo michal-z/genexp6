@@ -211,7 +211,7 @@ pub fn main() !void {
         fn (c_int) callconv(.Stdcall) bool,
         wglGetProcAddress("wglSwapIntervalEXT").?,
     );
-    _ = wglSwapIntervalEXT(0);
+    _ = wglSwapIntervalEXT(1);
 
     const glDrawPixels = opengl32_dll.lookup(
         fn (c_int, c_int, c_uint, c_uint, *const c_void) callconv(.Stdcall) void,
