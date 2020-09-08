@@ -13,61 +13,16 @@ const State = struct {
 
 fn update(state: *State) void {
     var row: u32 = 0;
-    while (state.y < window_height and row < 4) {
+    while (state.y < window_height and row < 4) : (row += 1) {
         var x: u32 = 0;
-        const y = state.y + row;
         while (x < window_width) : (x += 1) {
-            const i = x + y * window_width;
+            const i = x + state.y * window_width;
             state.image[i * 3 + 0] = 1.0;
             state.image[i * 3 + 1] = 0.0;
             state.image[i * 3 + 2] = 0.0;
         }
         state.y += 1;
-        row += 1;
     }
-}
-
-fn updateFrameStats(window: ?os.HWND, name: [*:0]const u8) struct { time: f64, delta_time: f32 } {
-    const state = struct {
-        var timer: std.time.Timer = undefined;
-        var previous_time_ns: u64 = 0;
-        var header_refresh_time_ns: u64 = 0;
-        var frame_count: u64 = ~@as(u64, 0);
-    };
-
-    if (state.frame_count == ~@as(u64, 0)) {
-        state.timer = std.time.Timer.start() catch unreachable;
-        state.previous_time_ns = 0;
-        state.header_refresh_time_ns = 0;
-        state.frame_count = 0;
-    }
-
-    const now_ns = state.timer.read();
-    const time = @intToFloat(f64, now_ns) / std.time.ns_per_s;
-    const delta_time = @intToFloat(f32, now_ns - state.previous_time_ns) / std.time.ns_per_s;
-    state.previous_time_ns = now_ns;
-
-    if ((now_ns - state.header_refresh_time_ns) >= std.time.ns_per_s) {
-        const t = @intToFloat(f64, now_ns - state.header_refresh_time_ns) / std.time.ns_per_s;
-        const fps = @intToFloat(f64, state.frame_count) / t;
-        const ms = (1.0 / fps) * 1000.0;
-
-        var buffer = [_]u8{0} ** 128;
-        const buffer_slice = buffer[0 .. buffer.len - 1];
-        const header = std.fmt.bufPrint(
-            buffer_slice,
-            "[{d:.1} fps  {d:.3} ms] {}",
-            .{ fps, ms, name },
-        ) catch buffer_slice;
-
-        _ = osl.SetWindowTextA(window, @ptrCast(os.LPCSTR, header.ptr));
-
-        state.header_refresh_time_ns = now_ns;
-        state.frame_count = 0;
-    }
-    state.frame_count += 1;
-
-    return .{ .time = time, .delta_time = delta_time };
 }
 
 const osl = struct {
@@ -237,7 +192,6 @@ pub fn main() !void {
             if (message.message == os.user32.WM_QUIT)
                 break;
         } else {
-            const stats = updateFrameStats(window, window_name);
             update(&state);
             glDrawPixels(window_width, window_height, GL_RGB, GL_FLOAT, image.ptr);
             _ = os.gdi32.SwapBuffers(hdc);
